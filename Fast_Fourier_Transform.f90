@@ -1,0 +1,196 @@
+ Module RAN
+!
+    !IMPLICIT NONE
+! 
+	PUBLIC FFT,FAST
+    CONTAINS
+!
+	SUBROUTINE FFT(N,ND1,AND ,X  )
+ !
+  Double complex ,DIMENSION(:),intent(inout)::X
+  Double complex ,DIMENSION(:),allocatable::Y
+  INTEGER I  
+  Double precision::DT,TS
+  CHARACTER::C
+  Double precision::Pi=3.14159265359
+  INTEGER,intent(in)::N
+  INTEGER,intent(in)::AND,ND1
+!
+!
+   OPEN(13,FILE="INPUT_CHECK.DAC",FORM="FORMATTED",STATUS="UNKNOWN")
+   !OPEN(123,FILE="FFT_ABS.DAC",FORM="FORMATTED",STATUS="UNKNOWN")
+   !OPEN(834,FILE="Frequency.DAC", FORM="FORMATTED",STATUS="UNKNOWN")
+   !
+   OPEN(25,FILE="FFT_INFO.TXT", FORM="FORMATTED",STATUS="UNKNOWN")
+!*************************************************************************
+ 
+ALLOCATE(Y(N+ND1))
+!
+Y=0
+!
+DO I=1,ND1
+Y(I)=X(I)
+END DO
+!
+WRITE(13,*)'CALCULATION OF FOURIER COEFFICIENTS'
+WRITE(13,*)' '
+!
+CALL	FOUC(N,X,ND1)
+!
+!
+!
+!  WRITE(13,*)'FAST FOURIER TRANSFORM IS PERFORMING'
+!
+WRITE(13,*)' '
+!
+ !READ(25,17,END=58)AND
+  IF (AND==-1) THEN 
+WRITE(13,*)'FAST FOURIER TRANSFORM PERFORMED'
+  ELSE IF (AND==1) THEN 
+WRITE(13,*)' INVERSE FOURIER TRANSFORM PERFORMED'
+ ELSE 
+WRITE(13,*)' ERROR DATA INPUT'
+ END IF
+! 
+ WRITE(13,*)' '
+!
+   CALL FAST(N,X,AND)
+!
+  IF (AND==-1) THEN
+!   
+WRITE(13,*)'RESULTS OF FAST FOURIER TRANSFORM'
+WRITE(13,*)' '
+!********************
+DO I=1,N
+WRITE(13,*)X(I)  	 
+!WRITE(123,*)CDABS(X(I))
+END DO
+!
+!*********************
+ ELSE IF (AND==1) THEN 
+ WRITE(13,*)' RESULTS OF INVERSE FOURIER TRANSFORM'
+ DO I=1,N
+ WRITE(13,*)X(I) /N 
+ !WRITE(123,*)CDABS(X(I))/N 
+ END DO
+!
+ END IF
+ WRITE(13,*)' '
+!
+!
+!
+16 FORMAT(A1)
+17 FORMAT(I6)
+18 FORMAT(F8.2)
+WRITE(13,*)'------------------------------'  
+WRITE(13,*)' '  
+!
+!PAUSE 'TAMAM'
+
+        END SUBROUTINE FFT
+!---------------------------------------
+		SUBROUTINE FAST(N,X,IND)
+        !
+		INTEGER,INTENT(IN)::N
+		INTEGER::IND
+        !
+		Double  COMPLEX ,DIMENSION(:),INTENT(INOUT):: X
+	    Double  COMPLEX:: TEMP,THETA
+
+!	COMPLEX A(1024)
+!		DIMENSION DATA(1024)
+!		DATA  NN/1024/
+!		DO 1 M=1,NN
+!		A(M)=CMPLX(DATA(M),0.0)
+!		1 CONTINUE
+
+
+	J=1
+	DO 140 I=1,N
+	IF(I.GE.J) GOTO 110
+	TEMP=X(J)
+	X(J)=X(I)
+	X(I)=TEMP
+	110 M=N/2
+	120 IF(J.LE.M) GOTO 130
+	J=J-M
+	M=M/2
+	IF(M.GE.2) GOTO 120
+	130 J=J+M
+	140 CONTINUE
+	KMAX=1
+	150 IF(KMAX.GE.N) THEN
+
+     RETURN
+	 END IF
+
+	ISTEP=KMAX*2
+	DO 170 K=1,KMAX
+	THETA=dCMPLX(0.0,3.14159265359*dFLOAT(IND*(K-1))/dFLOAT(KMAX))
+	DO 160 I=K,N,ISTEP
+	J=I+KMAX
+	TEMP=X(J)*CdEXP(THETA)
+	X(J)=X(I)-TEMP
+	X(I)=X(I)+TEMP
+	160 CONTINUE
+	170 CONTINUE
+	KMAX=ISTEP
+	GOTO 150
+        END SUBROUTINE	 FAST
+!  
+!------------------------------------------------------------------------
+!
+   	subroutine FOUC(N,X,ND1)
+	!	subroutine FOUC(N,X,ND1,A,B,ND2,NFOLD)
+	INTEGER, INTENT(IN):: N,ND1
+	INTEGER::K,NFOLD
+	!REAL ,DIMENSION(:), INTENT (OUT)::X,A,B 
+    !
+    Double precision,DIMENSION(:) ,ALLOCATABLE:: A,B
+    Double  complex,DIMENSION(:),INTENT(INOUT)::X
+	! DIMENSION X(ND1),A(ND2),B(ND2)
+	DATA P2/6.283185/ 
+	NFOLD=N+1
+	
+	ALLOCATE( A(NFOLD),B(NFOLD),STAT=K)
+	
+   OPEN(13,FILE="INPUT_CHECK.DAC",FORM="FORMATTED",STATUS="UNKNOWN")
+
+	DO 20 K=1,NFOLD
+	AK=0.0
+	BK=0.0
+
+	DO 10 M=1,N
+	AK=AK+X(M)*dCOS(P2*dFLOAT((K-1)*(M-1))/dFLOAT(N))
+	BK=BK+X(M)*dSIN(P2*dFLOAT((K-1)*(M-1))/dFLOAT(N))
+	10 END DO
+	A(K)=2.0/dFLOAT(N)*AK
+	B(K)=2.0/dFLOAT(N)*BK
+	20 END DO
+
+	DO K=1,NFOLD 
+	WRITE(13,*)' A',K,'=',A(K)
+	END DO
+
+	DO K=1,NFOLD 
+    WRITE(13,*)' B',K,'=',B(K)
+	END DO
+  	RETURN
+
+    END SUBROUTINE FOUC
+!--------------------------------------------
+!
+
+!--------------------------------------------    
+END  Module	 RAN
+  
+	 
+   
+
+
+
+
+
+
+
+
