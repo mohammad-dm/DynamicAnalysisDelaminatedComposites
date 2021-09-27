@@ -1,0 +1,119 @@
+MODULE SUPPO
+USE  CARP,ONLY: DGEMMD,DGEMVD
+
+IMPLICIT NONE
+PUBLIC SUPPORTS,MINDG
+CONTAINS
+SUBROUTINE SUPPORTS(NS,SAY,MSAY)
+
+!****************************************************
+!This subroutine Stores the Boundary Condition Data
+!MSAY=1 fixed 
+!MSAY=0 free
+!****************************************************
+
+CHARACTER::ME
+INTEGER,INTENT(OUT)::SAY
+INTEGER,INTENT(in)::NS
+INTEGER mestipi,N 
+INTEGER,DIMENSION(:),INTENT(OUT)::MSAY
+
+OPEN(8,FILE="BOUND.TXT", FORM="FORMATTED",STATUS="UNKNOWN")
+    
+ OPEN(13,FILE="INPUT_CHECK.DAC",FORM="FORMATTED",STATUS="UNKNOWN")
+WRITE(13,*)'  BOUNDARY CONDITIONS'
+WRITE(13,*)'     FIXED NODE','    FIXED DIRECTION'
+SAY=0
+MSAY=0
+DO
+  READ(8,4,END=158)ME
+IF ((ME=="Y").or. (ME=="y")) THEN   
+SAY=SAY+1
+
+
+READ(8,3,END=158)N			! Fixed Node
+READ(8,3,END=158)MESTIPI    ! Fixed Direction
+SELECT CASE(mestipi)
+ 
+ CASE(1)
+MSAY(3*N-2)=1 
+WRITE(13,*)N,'           GLOBAL X DIRECTION'
+
+  CASE(2)
+MSAY(3*N-1)=1 
+WRITE(13,*)N,'           GLOBAL Y DIRECTION'
+
+  CASE(3)
+MSAY(3*N)=1 
+WRITE(13,*)N,'           GLOBAL AROUND Z'
+				  
+
+CASE DEFAULT			   
+ PRINT*,'Wrong baundary condition' 
+ PAUSE 'DUR' 
+END	SELECT				 
+ELSE
+WRITE(13,*)
+EXIT
+END IF
+END DO
+
+IF (SAY==3*NS) THEN
+PRINT*,'Note:Degree of freedom should not be zero'
+PRINT*,'***Node one is free in z direction***'
+WRITE(13,*)'Note:Degree of freedom should not be zero'
+WRITE(13,*)'***Node one is free in z direction***'
+MSAY(1)=0
+SAY=SAY-1
+END IF
+
+3 FORMAT(I3)
+4 FORMAT(A1)
+158 CLOSE(8)
+
+!OPEN(72,FILE="MSAY.pap",FORM="FORMATTED",STATUS="UNKNOWN")
+!WRITE(72,*)'MSAY',SIZE(MSAY),'ELEMANLI'
+!WRITE(72,48)(MSAY(I),I=1,7*N)
+!48 FORMAT(6I10)
+
+ 
+END SUBROUTINE SUPPORTS
+
+SUBROUTINE MINDG(RES,RES_tr,MSAY,ME,N) 
+  INTEGER,DIMENSION(:),INTENT(IN)::MSAY 
+    INTEGER,INTENT(IN)::ME,N 
+
+   DOUBLE PRECISION,DIMENSION(:,:),INTENT(OUT)::RES	,RES_tr
+
+
+  INTEGER::I,J,K
+      
+
+k=0
+
+
+ !*******************
+DO I=1,3*N
+DO J=1,ME
+RES(I,J)=0
+END DO
+END DO
+
+
+DO I=1,3*N					 
+IF (MSAY(I)/=1)	THEN
+K=K+1
+RES(I,K)=1
+END IF
+END DO
+
+RES_tr=TRANSPOSE(RES)
+
+
+END SUBROUTINE MINDG
+
+
+
+
+
+END MODULE	 SUPPO
